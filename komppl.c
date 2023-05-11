@@ -751,7 +751,7 @@ int numb(char *T1 , int T2) /* вычисления порядкового */
                            /* строке-параметру функц.*/
 {
   int k;
-
+printf("%s \n", T1);
   for (I1 = 0; I1 < NVXOD; I1++)
   {
     for (k = 0; k < T2; k++)
@@ -760,11 +760,14 @@ int numb(char *T1 , int T2) /* вычисления порядкового */
         goto numb1;
     }
     if ((VXOD[I1].SYM[k] == '\x0') ||
-        (VXOD[I1].SYM[k] == ' '))
+        (VXOD[I1].SYM[k] == ' ')){
+          printf("%i \n", I1);
       return (I1);
+        }
   numb1:
     continue;
   }
+  
   return -1;
 }
 
@@ -1122,6 +1125,12 @@ int ODC1()
                           /* идентификатора = 'B' и */
     goto ODC11;           /* идем на продолжение об-*/
                           /* работки, а             */
+  }else if(!strcmp(FORMT[2], "DECIMAL") && !strcmp(FORMT[3], "FIXED")){
+    SYM[ISYM].TYPE = 'D';
+    goto ODC11;
+  }else if(!strcmp(FORMT[2], "LABEL")){
+    SYM[ISYM].TYPE = 'L';
+    goto ODC11;
   }
   else /* иначе                  */
   {
@@ -1133,11 +1142,11 @@ int ODC1()
 
 ODC11:                                  /* если идентификатор     */
                                         /* имеет начальную иници- */
-  if (!strcmp(FORMT[5], "INIT"))        /* ализацию, то запомина- */
+  if (!strcmp(FORMT[5], "NIT"))        /* ализацию, то запомина- */
     strcpy(SYM[ISYM++].INIT, FORMT[6]); /* ем в табл. SYM это на- */
                                         /* чальное значение, а    */
   else                                  /* иначе                  */
-    strcpy(SYM[ISYM++].INIT, "0B");     /* инициализируем иденти- */
+    strcpy(SYM[ISYM++].INIT, "0");     /* инициализируем иденти- */
                                         /* фикатор нулем          */
 
   return 0; /* успешное завешение     */
@@ -1261,6 +1270,35 @@ int ZNK1()
   return 0;
 }
 
+int NUM1(){
+  return 0;
+}
+int NUM2(){
+  return 0;
+}
+int GTO1(){
+  return 0;
+}
+int GTO2(){
+  return 0;
+}
+int LBP1(){
+  
+  return 0;
+}
+int LBP2(){
+  return 0;
+}
+int LBL1(){
+  FORM();
+  strcpy(SYM[ISYM].NAME, FORMT[0]);
+  SYM[ISYM].TYPE = 'L';
+  ISYM++;
+  return 0;
+}
+int LBL2(){
+  return 0;
+}
 /*..........................................................................*/
 
 /* п р о г р а м м а      */
@@ -1280,9 +1318,9 @@ int AVI2()
   {                                         /* термовая, то:          */
     for (i = 0; i < ISYM; i++)              /* ищем этот терм в табли-*/
     {                                       /* це имен  и             */
-      if (!strcmp(SYM[i].NAME, FORMT[0]) && /* если находим, то:      */
-          strlen(SYM[i].NAME) ==
-              strlen(FORMT[0]))
+      if (!strcmp(SYM[i].NAME, FORMT[0]) //&& /* если находим, то:      */
+          /*strlen(SYM[i].NAME) ==
+              strlen(FORMT[0])*/)
       {
         if (SYM[i].TYPE == 'B') /* в случае типа=bin fixed*/
         {
@@ -1310,6 +1348,30 @@ int AVI2()
           ZKARD();  /* запомнить операцию ас- */
                     /* семблера  и            */
           return 0; /* завершить программу    */
+        }else if(SYM[i].TYPE == 'D'){
+          memcpy(ASS_CARD._BUFCARD.OPERAC, "ZAP", 3);
+          // Записываем буфер с разрядностью в операнд
+          strcpy(ASS_CARD._BUFCARD.OPERAND, "@BUF(");
+          strcat(ASS_CARD._BUFCARD.OPERAND, "3");
+          strcat(ASS_CARD._BUFCARD.OPERAND, "),");
+          char *operand;
+          operand = malloc(strlen(SYM[i].NAME) + strlen("3") + 2);
+          strcpy(operand, SYM[i].NAME);
+          strcat(operand, "(");
+          strcat(operand, "3");
+          strcat(operand, ")");
+          // Записываем имя и разрядность второго операнда
+          strcat(ASS_CARD._BUFCARD.OPERAND, operand);
+          // Вставляем разделитель
+          ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
+          // Вставляем комментарий
+          memcpy(ASS_CARD._BUFCARD.COMM, "Loading variable into buffer", 28);
+                // Запоминаем операцию
+          ZKARD();
+          return 0;
+        }
+        else if(SYM[i].TYPE == 'L'){
+          return 0;
         }
         else
           return 3; /* если тип терма не bin  */
@@ -1386,6 +1448,36 @@ int AVI2()
 
           return 0; /* успешное завершение    */
                     /* пограммы               */
+        }
+        else if(SYM[i].TYPE == 'D')
+        {
+            if (STROKA[DST[I2].DST4 - strlen(FORMT[IFORMT - 1])] == '+')
+                     {
+                      memcpy(ASS_CARD._BUFCARD.OPERAC, "AP", 2);
+                     }else if(STROKA[DST[I2].DST4 - strlen(FORMT[IFORMT - 1])] == '-') {
+                      memcpy(ASS_CARD._BUFCARD.OPERAC, "SP", 2);
+                     }else{
+                      return 5;
+                     }
+              strcpy(ASS_CARD._BUFCARD.OPERAND, "@BUF(");
+              strcat(ASS_CARD._BUFCARD.OPERAND, "3");
+              strcat(ASS_CARD._BUFCARD.OPERAND, "),");
+              // Вычисляем разрядность второго операнда
+              char *operand;
+              operand = malloc(strlen(SYM[i].NAME) + strlen("3") + 2);
+              strcpy(operand, SYM[i].NAME);
+              strcat(operand, "(");
+              strcat(operand, "3");
+              strcat(operand, ")");
+              // Записываем имя и разрядность второго операнда
+              strcat(ASS_CARD._BUFCARD.OPERAND, operand);
+              // Вставляем разделитель
+              ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
+              // Вставляем комментарий
+              memcpy(ASS_CARD._BUFCARD.COMM,"Making temporary value", 22);
+              // Запоминаем операцию
+              ZKARD();
+              return 0;
         }
         else
           return 3; /* если тип правого опе-  */
@@ -1672,6 +1764,51 @@ int OPA2()
         ZKARD();  /* запомнить операцию     */
                   /* Ассемблера  и          */
         return 0; /* завершить программу    */
+      }else if(SYM[i].TYPE == 'D'){
+        char *operand;
+          operand = malloc(strlen(FORMT[0]) + strlen(SYM[i].RAZR) + 3);
+          strcpy(operand, FORMT[0]); // Формируем первый операнд
+          strcat(operand, "("); // Формируем разрядность 1 операнда
+          strcat(operand, SYM[i].RAZR);
+          strcat(operand, "),");
+          // Запись кода операции
+          memcpy(ASS_CARD._BUFCARD.OPERAC, "ZAP", 3);
+          // Запись операнда
+          strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
+        strcat(ASS_CARD._BUFCARD.OPERAND, "@BUF(");
+        strcat(ASS_CARD._BUFCARD.OPERAND, "3");
+        strcat(ASS_CARD._BUFCARD.OPERAND, ")");
+        ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
+        // Формирование построчного комментария
+        memcpy(ASS_CARD._BUFCARD.COMM, "Making result of arithmetic expression", 38);
+        // Запоминание ассемблеровской операции
+        ZKARD();
+        return 0;
+      }else if(SYM[i].TYPE == 'L'){
+        memcpy(ASS_CARD._BUFCARD.OPERAC, "LA", 2);
+        char *operand = malloc(strlen(FORMT[0]) + strlen("@RRAB,") + 3);
+        strcpy(operand, "@RRAB,");
+        strcat(operand, FORMT[0]);
+        strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
+        memcpy(ASS_CARD._BUFCARD.COMM, "loading label into register", 27);
+        ZKARD();
+
+        memcpy(ASS_CARD._BUFCARD.OPERAC, "ST", 2);
+        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,") + 2);
+        strcpy(operand, "@RRAB,");
+        strcat(operand, SYM[i].NAME);
+        strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
+        memcpy(ASS_CARD._BUFCARD.COMM, "loading label from register", 27);
+        ZKARD();
+
+        memcpy(ASS_CARD._BUFCARD.OPERAC, "L", 1);
+        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,") + 2);
+        strcpy(operand, "@RRAB,");
+        strcat(operand, SYM[i].NAME);
+        strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
+        memcpy(ASS_CARD._BUFCARD.COMM, "loading from label into register", 31);
+        ZKARD();
+        return 0;
       }
 
       else        /* если идентификатор не  */
@@ -1835,7 +1972,11 @@ int gen_COD() /*интерпретации строк сте-*/
        {/*   13  */ PRO1 , PRO2}, /*фрагмента исх.текста.   */
        {/*   14  */ RZR1 , RZR2},
        {/*   15  */ TEL1 , TEL2},
-       {/*   16  */ ZNK1 , ZNK2}};
+       {/*   16  */ ZNK1 , ZNK2},
+       {/*   17  */ NUM1 , NUM2},
+       {/*   18  */ LBP1 , LBP2},
+       {/*   19  */ LBL1 , LBL2},
+       {/*   20  */ GTO1 , GTO2}};
 
   for (I2 = 0; I2 < L; I2++)              /* организация первого    */
     if ((NOSH = FUN[numb(DST[I2].DST1 , 3)][0]()) != 0) 
@@ -1846,7 +1987,8 @@ int gen_COD() /*интерпретации строк сте-*/
                                                                                                 /* по ошибке              */
 
   for (I2 = 0; I2 < L; I2++)                                                                      /* организация второго    */
-    if ((NOSH = FUN[numb(DST[I2].DST1 , 3)][1]()) != 0)return (NOSH);                            /* прохода семантического */
+    if ((NOSH = FUN[numb(DST[I2].DST1 , 3)][1]()) != 0)
+        return (NOSH);                            /* прохода семантического */
                                                                                                      /* вычисления             */
     
                                                                                                 /* выход из программы     */
