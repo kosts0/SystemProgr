@@ -13,7 +13,7 @@
 /* п р е д е л ь н ы е    */
 /* размеры:               */
 #define MAXNISXTXT 300 /* - исходного текста;    */
-#define NSINT 278     /* - табл.синтакс.правил; */
+#define NSINT 280     /* - табл.синтакс.правил; */
 #define NCEL 20       /* - стека целей;         */
 #define NDST 500      /* - стека достижений;    */
 #define NVXOD 57      /* - табл.входов;         */
@@ -198,7 +198,7 @@ struct
         {/*.   45     .*/ 46, 42, "C  ", 0},
         {/*.   46     .*/ 47, 45, "L  ", 0},
         {/*.   47     .*/ 48, 46, "   ", 0},
-        {/*.   48     .*/ 49, 47, "IDE", 0},
+        {/*.   48     .*/ 49, 47, "IPE", 0},
         {/*.   49     .*/ 50 , 48, "   ", 0},
         {/*.   50     .*/ 51 , 49, "B  ", 187},
         {/*.   51     .*/ 52, 50 , "I  ", 0},
@@ -443,7 +443,7 @@ struct
         {/*.  252     .*/ 0 , 251 , "*  ", 0},
         /*                                  вход с симвода NUM*/
         {/*.  253     .*/ 254, 0 , "NUM", 0},
-        {/*.  254     .*/ 255, 253, "CIF", 0},
+        {/*.  254     .*/ 255, 253, "CIF", 278},
         {/*.  255     .*/ 256, 254, "NUM", 0},
         {/*.  256     .*/ 0 , 255, "*  ", 0},
         /*                                               вход с символа - G .*/
@@ -470,6 +470,8 @@ struct
         {/*.  275     .*/ 0 , 273, "*  ", 0},
         {/*.  276     .*/ 202, 96, ":  ", 0},
         {/*.  277     .*/   0, 201, "*  ", 0},
+        {/*   278      */ 279, 253, "AVI", 0},
+        {/*   279      */ 0  , 278, "*  ", 0}
 };
 
 /*
@@ -576,7 +578,7 @@ char TPR[NVXOD][NNETRM] =
         {/*RZR*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 , 0},
         {/*TEL*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0},
         {/*ZNK*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0},
-        {/*NUM*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0},
+        {/*NUM*/   1 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0 , 0},
         {/*LBP*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0},
         {/*LBL*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0},
         {/*GTO*/   0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 1 , 0 , 0},
@@ -1271,6 +1273,10 @@ int ZNK1()
 }
 
 int NUM1(){
+  FORM();
+  strcpy(SYM[ISYM].NAME, FORMT[0]);
+  SYM[ISYM].TYPE = 'D'; 
+  SYM[ISYM++].RAZR[0] = '3'; 
   return 0;
 }
 int NUM2(){
@@ -1280,7 +1286,43 @@ int GTO1(){
   return 0;
 }
 int GTO2(){
-  return 0;
+  FORM();
+  for (int i = 0; i < ISYM; i++)
+  {
+    if (!strcmp(SYM[i].NAME, FORMT[2]) && 
+        strlen(SYM[i].NAME) ==            
+            strlen(FORMT[2])){
+
+              char *str;
+              if(SYM[i].TYPE == 'L'){
+                strcpy(ASS_CARD._BUFCARD.OPERAC,"BCR");
+                str = malloc(strlen("GO TO LABEL ") + strlen(SYM[i].NAME));
+                strcpy(str, "GO TO LABEL ");
+                strcat(str, SYM[i].NAME);
+                strcpy(ASS_CARD._BUFCARD.OPERAND, "15, @RRAB");
+                strcpy(ASS_CARD._BUFCARD.COMM, str);
+                ZKARD();
+                return 0;
+              }else if(SYM[i].TYPE == 'M')
+              {
+                strcpy(ASS_CARD._BUFCARD.OPERAC, "BC");
+                str = malloc(strlen("15, ") + strlen(SYM[i].NAME));
+                strcpy(str,"15, ");
+                strcat(str, SYM[i].NAME);
+                strcpy(ASS_CARD._BUFCARD.OPERAND, str);
+                str = malloc(strlen("GO TO LABEL ") + strlen(SYM[i].NAME));
+                strcpy(str, "GO TO LABEL ");
+                strcat(str, SYM[i].NAME);
+                strcpy(ASS_CARD._BUFCARD.COMM, str);
+                ZKARD();
+                return 0;
+              }
+              else{
+                return 5;
+              }
+            }
+  }
+  return 6;
 }
 int LBP1(){
   
@@ -1292,11 +1334,13 @@ int LBP2(){
 int LBL1(){
   FORM();
   strcpy(SYM[ISYM].NAME, FORMT[0]);
-  SYM[ISYM].TYPE = 'L';
+  SYM[ISYM].TYPE = 'M';
   ISYM++;
   return 0;
 }
 int LBL2(){
+  FORM();
+  strcpy(ASS_CARD._BUFCARD.METKA, FORMT[0]);
   return 0;
 }
 /*..........................................................................*/
@@ -1318,9 +1362,9 @@ int AVI2()
   {                                         /* термовая, то:          */
     for (i = 0; i < ISYM; i++)              /* ищем этот терм в табли-*/
     {                                       /* це имен  и             */
-      if (!strcmp(SYM[i].NAME, FORMT[0]) //&& /* если находим, то:      */
-          /*strlen(SYM[i].NAME) ==
-              strlen(FORMT[0])*/)
+      if (!strcmp(SYM[i].NAME, FORMT[0]) && /* если находим, то:      */
+          strlen(SYM[i].NAME) ==
+              strlen(FORMT[0]))
       {
         if (SYM[i].TYPE == 'B') /* в случае типа=bin fixed*/
         {
@@ -1370,7 +1414,7 @@ int AVI2()
           ZKARD();
           return 0;
         }
-        else if(SYM[i].TYPE == 'L'){
+        else if(SYM[i].TYPE == 'M'){
           return 0;
         }
         else
@@ -1769,7 +1813,7 @@ int OPA2()
           operand = malloc(strlen(FORMT[0]) + strlen(SYM[i].RAZR) + 3);
           strcpy(operand, FORMT[0]); // Формируем первый операнд
           strcat(operand, "("); // Формируем разрядность 1 операнда
-          strcat(operand, SYM[i].RAZR);
+          strcat(operand, /*SYM[i].RAZR*/ "3");
           strcat(operand, "),");
           // Запись кода операции
           memcpy(ASS_CARD._BUFCARD.OPERAC, "ZAP", 3);
@@ -1786,15 +1830,14 @@ int OPA2()
         return 0;
       }else if(SYM[i].TYPE == 'L'){
         memcpy(ASS_CARD._BUFCARD.OPERAC, "LA", 2);
-        char *operand = malloc(strlen(FORMT[0]) + strlen("@RRAB,") + 3);
+        char *operand = malloc(strlen(FORMT[1]) + strlen("@RRAB,"));
         strcpy(operand, "@RRAB,");
-        strcat(operand, FORMT[0]);
+        strcat(operand, FORMT[1]);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
         memcpy(ASS_CARD._BUFCARD.COMM, "loading label into register", 27);
         ZKARD();
-
         memcpy(ASS_CARD._BUFCARD.OPERAC, "ST", 2);
-        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,") + 2);
+        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,"));
         strcpy(operand, "@RRAB,");
         strcat(operand, SYM[i].NAME);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
@@ -1802,7 +1845,7 @@ int OPA2()
         ZKARD();
 
         memcpy(ASS_CARD._BUFCARD.OPERAC, "L", 1);
-        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,") + 2);
+        operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,"));
         strcpy(operand, "@RRAB,");
         strcat(operand, SYM[i].NAME);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
