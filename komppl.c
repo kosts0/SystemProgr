@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <stdbool.h>
 /* п р е д е л ь н ы е    */
 /* размеры:               */
 #define MAXNISXTXT 300 /* - исходного текста;    */
@@ -918,6 +919,15 @@ struct           /* таблица имен меток и   */
   char INIT[50]; /* ром проходе семантичес-*/
 } SYM[NSYM];     /* кого вычисления        */
 
+//Целочисленные литералы, используемые в арифметических выражениях с DECIMAL
+struct
+{
+  char NAME[8];
+  char RAZR[5];
+} DecimalLiteral[10];
+//Текущее колиечество используемых литералов в арифметических выражениях с DECIMAL
+int CurrentDecimalLiteralCount = 0;
+
 int ISYM = 0; /* текущий индекс таблицы */
               /* имен                   */
 
@@ -1129,6 +1139,7 @@ int ODC1()
                           /* работки, а             */
   }else if(!strcmp(FORMT[2], "DECIMAL") && !strcmp(FORMT[3], "FIXED")){
     SYM[ISYM].TYPE = 'D';
+    strcpy(SYM[ISYM].RAZR,"3");
     goto ODC11;
   }else if(!strcmp(FORMT[2], "LABEL")){
     SYM[ISYM].TYPE = 'L';
@@ -1144,11 +1155,11 @@ int ODC1()
 
 ODC11:                                  /* если идентификатор     */
                                         /* имеет начальную иници- */
-  if (!strcmp(FORMT[5], "NIT"))        /* ализацию, то запомина- */
-    strcpy(SYM[ISYM++].INIT, FORMT[6]); /* ем в табл. SYM это на- */
+  if (!strcmp(FORMT[4], "NIT"))        /* ализацию, то запомина- */
+    strcpy(SYM[ISYM++].INIT, FORMT[5]); /* ем в табл. SYM это на- */
                                         /* чальное значение, а    */
   else                                  /* иначе                  */
-    strcpy(SYM[ISYM++].INIT, "0");     /* инициализируем иденти- */
+    strcpy(SYM[ISYM++].INIT, "\x0");     /* инициализируем иденти- */
                                         /* фикатор нулем          */
 
   return 0; /* успешное завешение     */
@@ -1275,7 +1286,7 @@ int ZNK1()
 int NUM1(){
   FORM();
   strcpy(SYM[ISYM].NAME, FORMT[0]);
-  SYM[ISYM].TYPE = 'D'; 
+  SYM[ISYM].TYPE = 'N'; 
   SYM[ISYM++].RAZR[0] = '3'; 
   return 0;
 }
@@ -1295,25 +1306,29 @@ int GTO2(){
 
               char *str;
               if(SYM[i].TYPE == 'L'){
-                strcpy(ASS_CARD._BUFCARD.OPERAC,"BCR");
+                memcpy(ASS_CARD._BUFCARD.OPERAC,"BCR",3);
                 str = malloc(strlen("GO TO LABEL ") + strlen(SYM[i].NAME));
                 strcpy(str, "GO TO LABEL ");
                 strcat(str, SYM[i].NAME);
                 strcpy(ASS_CARD._BUFCARD.OPERAND, "15, @RRAB");
                 strcpy(ASS_CARD._BUFCARD.COMM, str);
+                ASS_CARD._BUFCARD.OPERAC[strlen(ASS_CARD._BUFCARD.OPERAC)] = ' ';
+                ASS_CARD._BUFCARD.COMM[strlen(ASS_CARD._BUFCARD.COMM)] = ' ';
                 ZKARD();
                 return 0;
               }else if(SYM[i].TYPE == 'M')
               {
-                strcpy(ASS_CARD._BUFCARD.OPERAC, "BC");
+                memcpy(ASS_CARD._BUFCARD.OPERAC, "BC",2);
                 str = malloc(strlen("15, ") + strlen(SYM[i].NAME));
                 strcpy(str,"15, ");
-                strcat(str, SYM[i].NAME);
+                strcpy(str, SYM[i].NAME);
                 strcpy(ASS_CARD._BUFCARD.OPERAND, str);
+                ASS_CARD._BUFCARD.OPERAC[strlen(ASS_CARD._BUFCARD.OPERAC)] = ' ';
                 str = malloc(strlen("GO TO LABEL ") + strlen(SYM[i].NAME));
                 strcpy(str, "GO TO LABEL ");
                 strcat(str, SYM[i].NAME);
                 strcpy(ASS_CARD._BUFCARD.COMM, str);
+                ASS_CARD._BUFCARD.COMM[strlen(ASS_CARD._BUFCARD.COMM)] = ' ';
                 ZKARD();
                 return 0;
               }
@@ -1341,6 +1356,7 @@ int LBL1(){
 int LBL2(){
   FORM();
   strcpy(ASS_CARD._BUFCARD.METKA, FORMT[0]);
+  ASS_CARD._BUFCARD.METKA[strlen(ASS_CARD._BUFCARD.METKA)] = ' ';
   return 0;
 }
 /*..........................................................................*/
@@ -1392,26 +1408,38 @@ int AVI2()
           ZKARD();  /* запомнить операцию ас- */
                     /* семблера  и            */
           return 0; /* завершить программу    */
-        }else if(SYM[i].TYPE == 'D'){
+        }else if(SYM[i].TYPE == 'D' || SYM[i].TYPE == 'N'){
           memcpy(ASS_CARD._BUFCARD.OPERAC, "ZAP", 3);
           // Записываем буфер с разрядностью в операнд
           strcpy(ASS_CARD._BUFCARD.OPERAND, "@BUF(");
-          strcat(ASS_CARD._BUFCARD.OPERAND, "3");
+          strcat(ASS_CARD._BUFCARD.OPERAND, SYM[i].RAZR);
           strcat(ASS_CARD._BUFCARD.OPERAND, "),");
+          if(SYM[i].TYPE == 'N'){
+            strcat(ASS_CARD._BUFCARD.OPERAND, "@");
+          }
+          strcat(ASS_CARD._BUFCARD.OPERAND, SYM[i].NAME);
+          strcat(ASS_CARD._BUFCARD.OPERAND, "(");
+          strcat(ASS_CARD._BUFCARD.OPERAND, SYM[i].RAZR);
+          /*strcat(operand, ")");
           char *operand;
-          operand = malloc(strlen(SYM[i].NAME) + strlen("3") + 2);
+          operand = malloc(strlen(SYM[i].NAME) + 1);
           strcpy(operand, SYM[i].NAME);
           strcat(operand, "(");
-          strcat(operand, "3");
+          strcat(operand, SYM[i].RAZR);
           strcat(operand, ")");
           // Записываем имя и разрядность второго операнда
-          strcat(ASS_CARD._BUFCARD.OPERAND, operand);
+          strcat(ASS_CARD._BUFCARD.OPERAND, operand);*/
           // Вставляем разделитель
           ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
           // Вставляем комментарий
           memcpy(ASS_CARD._BUFCARD.COMM, "Loading variable into buffer", 28);
                 // Запоминаем операцию
           ZKARD();
+          if(SYM[i].TYPE == 'N'){
+            memcpy(DecimalLiteral[CurrentDecimalLiteralCount].NAME, SYM[i].NAME, strlen(SYM[i].NAME));
+            memcpy(DecimalLiteral[CurrentDecimalLiteralCount].RAZR, SYM[i].RAZR, strlen(SYM[i].RAZR));
+            CurrentDecimalLiteralCount++;
+          }
           return 0;
         }
         else if(SYM[i].TYPE == 'M'){
@@ -1508,10 +1536,10 @@ int AVI2()
               strcat(ASS_CARD._BUFCARD.OPERAND, "),");
               // Вычисляем разрядность второго операнда
               char *operand;
-              operand = malloc(strlen(SYM[i].NAME) + strlen("3") + 2);
+              operand = malloc(strlen(SYM[i].NAME) + 3);
               strcpy(operand, SYM[i].NAME);
               strcat(operand, "(");
-              strcat(operand, "3");
+              strcat(operand, SYM[i].RAZR);
               strcat(operand, ")");
               // Записываем имя и разрядность второго операнда
               strcat(ASS_CARD._BUFCARD.OPERAND, operand);
@@ -1717,8 +1745,52 @@ int OEN2()
 
         ZKARD(); /* запомнить операцию     */
                  /*    Ассемблера          */
+      }else if(SYM[i].TYPE == 'D'){
+        strcpy(ASS_CARD._BUFCARD.METKA, SYM[i].NAME);
+        ASS_CARD._BUFCARD.METKA[strlen(ASS_CARD._BUFCARD.METKA)] = ' ';
+        bool withInit = SYM[i].INIT[0] != '\x0';
+        if(!withInit){
+          memcpy(ASS_CARD._BUFCARD.OPERAC, "DS", 2);
+        }else{
+          memcpy(ASS_CARD._BUFCARD.OPERAC, "DC", 2);
+        }
+        memcpy(ASS_CARD._BUFCARD.OPERAND, "PL", 2 + strlen(SYM[i].RAZR) + (withInit == true ? (strlen(SYM[i].INIT) + 2) : 0));
+        strcat(ASS_CARD._BUFCARD.OPERAND, SYM[i].RAZR);
+        if(withInit){
+          strcat(ASS_CARD._BUFCARD.OPERAND, "\'");
+          strcat(ASS_CARD._BUFCARD.OPERAND, SYM[i].INIT);
+          strcat(ASS_CARD._BUFCARD.OPERAND, "\'");
+        }
+        ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
+        memcpy(ASS_CARD._BUFCARD.COMM, "Reserve member for ", 19 + strlen(SYM[i].NAME) + 1);
+        strcat(ASS_CARD._BUFCARD.COMM, SYM[i].NAME);
+        ASS_CARD._BUFCARD.COMM[strlen(ASS_CARD._BUFCARD.COMM)] = ' ';
+        ZKARD();
+      }else if(SYM[i].TYPE == 'L'){
+        strcpy(ASS_CARD._BUFCARD.METKA, SYM[i].NAME);
+        ASS_CARD._BUFCARD.METKA[strlen(ASS_CARD._BUFCARD.METKA)] = ' ';
+        memcpy(ASS_CARD._BUFCARD.OPERAC, "DS", 2);
+        memcpy(ASS_CARD._BUFCARD.OPERAND, "A", 1);
+        memcpy(ASS_CARD._BUFCARD.COMM, "Reserve member for ", 19 + strlen(SYM[i].NAME) + 1);
+        strcat(ASS_CARD._BUFCARD.COMM, SYM[i].NAME);
+        ASS_CARD._BUFCARD.COMM[strlen(ASS_CARD._BUFCARD.COMM)] = ' ';
+        ZKARD();
       }
     }
+  }
+  memcpy(ASS_CARD._BUFCARD.METKA, "@BUF", 4);
+  memcpy(ASS_CARD._BUFCARD.OPERAC, "DS", 2);
+  memcpy(ASS_CARD._BUFCARD.OPERAND, "PL3", 3);
+  memcpy(ASS_CARD._BUFCARD.COMM, "Init buffer for Decimal operations", 34);
+  ZKARD();
+  for(int i=0;i < CurrentDecimalLiteralCount; i++){
+    memcpy(ASS_CARD._BUFCARD.METKA,"@", strlen(DecimalLiteral[i].NAME) + 1);
+        strcat(ASS_CARD._BUFCARD.METKA, DecimalLiteral[i].NAME);
+        ASS_CARD._BUFCARD.METKA[strlen(ASS_CARD._BUFCARD.METKA)] = ' ';
+        memcpy(ASS_CARD._BUFCARD.OPERAC, "DC", 2);
+        memcpy(ASS_CARD._BUFCARD.OPERAND, "PL3\'3\'", 6);
+        memcpy(ASS_CARD._BUFCARD.COMM, "Reserve member for decimal literal", 34);
+        ZKARD();
   }
   /* далее идет блок декла- */
   /* ративных ассемблеровс- */
@@ -1727,19 +1799,25 @@ int OEN2()
   /* рабочий регистры общего*/
   /* назначения             */
 
-  memcpy(ASS_CARD._BUFCARD.METKA, "RBASE", 5); /* формирование EQU-псев- */
+  memcpy(ASS_CARD._BUFCARD.METKA, "@RBASE", 6); /* формирование EQU-псев- */
   memcpy(ASS_CARD._BUFCARD.OPERAC, "EQU", 3);  /* дооперации определения */
   memcpy(ASS_CARD._BUFCARD.OPERAND, "15", 2);  /* номера базового регист-*/
                                                /* ра общего назначения   */
                                                /*           и            */
   ZKARD();                                     /* запоминание ее         */
 
-  memcpy(ASS_CARD._BUFCARD.METKA, "RRAB", 4); /* формирование EQU-псев- */
+  memcpy(ASS_CARD._BUFCARD.METKA, "@RRAB", 5); /* формирование EQU-псев- */
   memcpy(ASS_CARD._BUFCARD.OPERAC, "EQU", 3); /* дооперации определения */
   memcpy(ASS_CARD._BUFCARD.OPERAND, "5", 1);  /* номера базового регист-*/
                                               /* ра общего назначения   */
                                               /*            и           */
   ZKARD();                                    /* запоминание ее         */
+
+
+  memcpy(ASS_CARD._BUFCARD.METKA, "@RVIX", 5);
+  memcpy(ASS_CARD._BUFCARD.OPERAC, "EQU", 3);
+  memcpy(ASS_CARD._BUFCARD.OPERAND, "5", 1);
+  ZKARD();
 
   memcpy(ASS_CARD._BUFCARD.OPERAC, "END", 3); /* формирование кода ас-  */
                                               /* семблеровской псевдо-  */
@@ -1813,7 +1891,7 @@ int OPA2()
           operand = malloc(strlen(FORMT[0]) + strlen(SYM[i].RAZR) + 3);
           strcpy(operand, FORMT[0]); // Формируем первый операнд
           strcat(operand, "("); // Формируем разрядность 1 операнда
-          strcat(operand, /*SYM[i].RAZR*/ "3");
+          strcat(operand, SYM[i].RAZR);
           strcat(operand, "),");
           // Запись кода операции
           memcpy(ASS_CARD._BUFCARD.OPERAC, "ZAP", 3);
@@ -1835,6 +1913,7 @@ int OPA2()
         strcat(operand, FORMT[1]);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
         memcpy(ASS_CARD._BUFCARD.COMM, "loading label into register", 27);
+        ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
         ZKARD();
         memcpy(ASS_CARD._BUFCARD.OPERAC, "ST", 2);
         operand = malloc(strlen(SYM[i].NAME) + strlen("@RRAB,"));
@@ -1842,6 +1921,7 @@ int OPA2()
         strcat(operand, SYM[i].NAME);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
         memcpy(ASS_CARD._BUFCARD.COMM, "loading label from register", 27);
+        ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
         ZKARD();
 
         memcpy(ASS_CARD._BUFCARD.OPERAC, "L", 1);
@@ -1849,7 +1929,8 @@ int OPA2()
         strcpy(operand, "@RRAB,");
         strcat(operand, SYM[i].NAME);
         strcpy(ASS_CARD._BUFCARD.OPERAND, operand);
-        memcpy(ASS_CARD._BUFCARD.COMM, "loading from label into register", 31);
+        ASS_CARD._BUFCARD.OPERAND[strlen(ASS_CARD._BUFCARD.OPERAND)] = ' ';
+        memcpy(ASS_CARD._BUFCARD.COMM, "loading from label into register", 32);
         ZKARD();
         return 0;
       }
